@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<title>Todos</title>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.3.5/dist/alpine.min.js"></script>
+	<style>
+		.completed {
+			text-decoration: line-through;
+		}
+
+		li {
+			cursor: pointer;
+		}
+	</style>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+</head>
+<body class="bg-light" x-data="todos()" x-init="fetchTodos()">
+	<div class="container">
+		<div class="row mb-3">
+			<h1>Планы на сегодня:</h1>
+		</div>
+		<div class="row mb-3">
+			<div class="col-8">
+				<ul class="list-group">
+					<template x-for="todo in todos" :key="todo.id">
+						<li class="list-group-item" :class="{'completed': todo.completed}">
+							<span @click="toggleTodo(todo.id)" x-text="todo.title"></span>
+							<span @click="deleteTodo(todo.id)"><svg class="bi bi-x-circle" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path fill-rule="evenodd" d="M11.854 4.146a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708-.708l7-7a.5.5 0 0 1 .708 0z"/><path fill-rule="evenodd" d="M4.146 4.146a.5.5 0 0 0 0 .708l7 7a.5.5 0 0 0 .708-.708l-7-7a.5.5 0 0 0-.708 0z"/></svg></span>
+						</li>
+					</template>
+				</ul>
+			</div>
+		</div>
+	</div>
+
+	<div class="container">
+		<div class="row">
+			<div class="col-md-8">
+				<form class="form-inline">
+					<h4>Добавить новую задачу:</h4>
+					<div class="form-group mx-sm-3 mb-2">
+						<input type="text" class="form-control" id="inputValue" placeholder="Имя задачи" x-model="inputValue"/>
+					</div>
+
+					<button type="button" class="btn btn-primary mb-2" @click="addTodo()">Добавить</button>
+				</form>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		function todos() {
+			return {
+				todos: [],
+				fetchTodos: function() {
+					fetch('/api/todos')
+						.then((response) => response.json())
+						.then((data) => {
+							this.todos = data;
+						});
+				},
+				toggleTodo: async function(id) {
+					var todo = this.todos.find((todo) => todo.id === id);
+					todo.completed = !todo.completed;
+					await fetch('/api/todos/'+id, {
+						method: 'PUT',
+						headers: {
+							'Content-Type': 'application/json;charset=utf-8'
+						}
+					});
+				},
+				inputValue: '',
+				addTodo: async function() {
+					if (!this.inputValue) {
+						return;
+					}
+
+					const todo = {
+						title: this.inputValue,
+						completed: false,
+					};
+
+					const response = await fetch('/api/todos', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json;charset=utf-8'
+						},
+						body: JSON.stringify(todo)
+					});
+
+					const result = await response.json();
+					todo.id = result.id;
+
+					this.todos.push(todo);
+					this.inputValue = '';
+				},
+				deleteTodo: async function(id) {
+					this.todos = this.todos.filter((todo) => todo.id !== id);
+					await fetch('/api/todos/'+id, {
+						method: 'DELETE'
+					});
+				}
+			}
+		}
+	</script>
+</body>
+</html>
